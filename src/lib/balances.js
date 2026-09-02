@@ -2,20 +2,20 @@ import { sharesForExpense } from "./money.js";
 
 export function computeBalances(members, expenses) {
   const bal = {};
-  for (const m of members) bal[m.id] = 0;
+  // Enforce consistent numeric tracking keys safely
+  for (const m of members) bal[Number(m.id)] = 0;
 
   for (const exp of expenses) {
     const shares = sharesForExpense(exp);
-    bal[exp.paidBy] = (bal[exp.paidBy] || 0) + Number(exp.amount);
+    const payerId = Number(exp.paidBy);
+    
+    // Credit the payer the total gross amount spent
+    bal[payerId] = (bal[payerId] || 0) + Number(exp.amount);
 
+    // Debit each consumer their individual calculated share
     for (const [id, share] of Object.entries(shares)) {
       const key = Number(id);
       bal[key] = (bal[key] || 0) - share;
-    }
-
-    if (!(exp.paidBy in shares) && !(String(exp.paidBy) in shares)) {
-      const n = exp.splitWith.length || 1;
-      bal[exp.paidBy] -= Number(exp.amount) / n;
     }
   }
 

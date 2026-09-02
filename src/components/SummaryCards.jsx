@@ -5,14 +5,15 @@ import { totalSpent } from "../lib/balances.js";
 export default function SummaryCards({ members, expenses, onAddMember }) {
   const [name, setName] = useState("");
 
+  // FIXED: Appended members dependency target to prevent rendering drops
   const perPerson = useMemo(() => {
     return members.map((m) => {
       const paid = expenses
-        .filter((e) => e.paidBy === m.id)
+        .filter((e) => Number(e.paidBy) === Number(m.id))
         .reduce((s, e) => s + Number(e.amount), 0);
       return { id: m.id, name: m.name, paid };
     });
-  }, [expenses]);
+  }, [expenses, members]);
 
   const spent = totalSpent(expenses);
 

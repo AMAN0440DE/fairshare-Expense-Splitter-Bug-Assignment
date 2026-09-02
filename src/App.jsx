@@ -33,15 +33,18 @@ export default function App() {
     return state.expenses.filter((e) => {
       if (q && !e.description.toLowerCase().includes(q)) return false;
       if (category !== "All" && e.category !== category) return false;
-      if (paidBy !== "" && e.paidBy !== paidBy) return false;
+      // FIXED: Safely cast data elements to ensure string selection matches integers accurately
+      if (paidBy !== "" && Number(e.paidBy) !== Number(paidBy)) return false;
       return true;
     });
   }, [state.expenses, query, category, paidBy]);
 
+  // FIXED: Summary data maps read from dynamic filtered layers during active filtering sessions
   const balances = useMemo(
-    () => computeBalances(state.members, state.expenses),
-    [state.members, state.expenses]
+    () => computeBalances(state.members, filtered),
+    [state.members, filtered]
   );
+  
   const transfers = useMemo(
     () => suggestSettlements(balances, state.members),
     [balances, state.members]
@@ -72,7 +75,7 @@ export default function App() {
           <div className="eyebrow">FairShare</div>
           <h1>{state.groupName}</h1>
           <p className="subtitle">
-            Shared expenses for four friends. Numbers and labels should match
+            Shared expenses for {state.members.length} friends. Numbers and labels should match
             the spec in the README.
           </p>
         </div>
@@ -93,16 +96,14 @@ export default function App() {
           <ExpenseList
             expenses={filtered}
             members={state.members}
-            onDeleteAt={(index) => dispatch({ type: "DELETE_EXPENSE", index })}
-            onUpdateAt={(index, patch) =>
-              dispatch({ type: "UPDATE_EXPENSE", index, patch })
-            }
+            onDeleteAt={(id) => dispatch({ type: "DELETE_EXPENSE", id })}
+            onUpdateAt={(id, patch) => dispatch({ type: "UPDATE_EXPENSE", id, patch })}
           />
         </div>
         <div className="stack">
           <SummaryCards
             members={state.members}
-            expenses={state.expenses}
+            expenses={filtered}
             onAddMember={addMember}
           />
           <BalancesPanel members={state.members} balances={balances} />

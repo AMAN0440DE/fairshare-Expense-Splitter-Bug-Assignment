@@ -26,12 +26,16 @@ export default function Filters({
           <label htmlFor="paidBy">Paid by</label>
           <select
             id="paidBy"
-            value={paidBy}
-            onChange={(e) => onPaidBy(e.target.value)}
+            value={String(paidBy)}
+            onChange={(e) => {
+              const val = e.target.value;
+              // FIXED: Cast string dropdown values to proper numeric identifiers 
+              onPaidBy(val === "" ? "" : Number(val));
+            }}
           >
             <option value="">Anyone</option>
             {members.map((m) => (
-              <option key={m.id} value={m.id}>
+              <option key={m.id} value={String(m.id)}>
                 {m.name}
               </option>
             ))}

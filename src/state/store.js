@@ -3,9 +3,12 @@ const KEY = "fairshare-v1";
 function hydrate(data) {
   return {
     groupName: data.groupName,
-    members: data.members.map((m) => ({ ...m })),
+    members: data.members.map((m) => ({ ...m, id: Number(m.id) })),
     expenses: data.expenses.map((e) => ({
       ...e,
+      id: String(e.id),
+      paidBy: Number(e.paidBy),
+      splitWith: e.splitWith.map(Number),
       date: new Date(e.date),
     })),
   };
@@ -19,7 +22,21 @@ export function loadState(seed) {
       localStorage.setItem(KEY, JSON.stringify(initial));
       return initial;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    
+    // FIXED: Enforce date object re-hydration on local storage page reloads
+    parsed.expenses = parsed.expenses.map((e) => ({
+      ...e,
+      id: String(e.id),
+      paidBy: Number(e.paidBy),
+      splitWith: e.splitWith.map(Number),
+      date: new Date(e.date),
+    }));
+    
+    // Normalize member IDs to numbers
+    parsed.members = parsed.members.map((m) => ({ ...m, id: Number(m.id) }));
+    
+    return parsed;
   } catch {
     return hydrate(seed);
   }
@@ -30,11 +47,11 @@ export function persistState(state) {
 }
 
 export function nextExpenseId() {
-  return `e-${Date.now()}`;
+  return `e-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 export function nextMemberId(members) {
-  const max = members.reduce((m, x) => (x.id > m ? x.id : m), 0);
+  const max = members.reduce((m, x) => (Number(x.id) > m ? Number(x.id) : m), 0);
   return max + 1;
 }
 
@@ -44,14 +61,20 @@ export function reducer(state, action) {
       return { ...state, expenses: [...state.expenses, action.expense] };
     }
     case "DELETE_EXPENSE": {
-      const next = state.expenses.slice();
-      next.splice(action.index, 1);
-      return { ...state, expenses: next };
+      // FIXED: Safely targets mutations using immutable element IDs
+      return {
+        ...state,
+        expenses: state.expenses.filter((e) => e.id !== action.id),
+      };
     }
     case "UPDATE_EXPENSE": {
-      const next = state.expenses.slice();
-      next[action.index] = { ...next[action.index], ...action.patch };
-      return { ...state, expenses: next };
+      // FIXED: Safely applies structural edits using immutable element IDs
+      return {
+        ...state,
+        expenses: state.expenses.map((e) =>
+          e.id === action.id ? { ...e, ...action.patch } : e
+        ),
+      };
     }
     case "ADD_MEMBER": {
       return { ...state, members: [...state.members, action.member] };

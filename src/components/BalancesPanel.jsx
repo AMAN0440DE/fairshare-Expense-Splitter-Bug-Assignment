@@ -14,16 +14,19 @@ export default function BalancesPanel({ members, balances }) {
     <section className="card">
       <h2>Balances</h2>
       {members.map((m) => {
-        const bal = Number(balances[m.id] || 0);
+        // FIXED: Rounds fractional ledger points to prevent dead-zone visual bugs
+        const bal = Math.round(Number(balances[m.id] || 0) * 100) / 100;
         let label = "settled up";
         let cls = "settled";
-        if (bal > 0.005) {
+        
+        if (bal > 0) {
           label = `owes ${formatMoney(bal)}`;
           cls = "owe";
-        } else if (bal < -0.005) {
+        } else if (bal < 0) {
           label = `is owed ${formatMoney(-bal)}`;
           cls = "owed";
         }
+        
         return (
           <div className="balance-row" key={m.id}>
             <div className="who">

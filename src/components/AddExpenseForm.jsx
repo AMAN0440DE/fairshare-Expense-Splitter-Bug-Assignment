@@ -17,7 +17,7 @@ export default function AddExpenseForm({ members, onAdd }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [paidBy, setPaidBy] = useState(members[0]?.id ?? "");
-  const [date, setDate] = useState("2026-03-16");
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]); // FIXED: Dynamic current date initialization
   const [category, setCategory] = useState("Food");
   const [splitType, setSplitType] = useState("equal");
   const [splitWith, setSplitWith] = useState(members.map((m) => m.id));
@@ -30,11 +30,13 @@ export default function AddExpenseForm({ members, onAdd }) {
   );
 
   function toggleMember(id) {
-    setSplitWith((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      setPercents(evenPercents(next));
-      return next;
-    });
+    const nextSplitWith = splitWith.includes(id) 
+      ? splitWith.filter((x) => x !== id) 
+      : [...splitWith, id];
+    
+    // FIXED: Simultaneously updates independent state hooks using the local reference safely
+    setSplitWith(nextSplitWith);
+    setPercents(evenPercents(nextSplitWith));
   }
 
   function submit(e) {
@@ -64,6 +66,9 @@ export default function AddExpenseForm({ members, onAdd }) {
       date: new Date(date),
       category,
     });
+
+    setDescription("");
+    setAmount("");
   }
 
   return (
@@ -175,12 +180,15 @@ export default function AddExpenseForm({ members, onAdd }) {
               <div className="percent-row" key={m.id}>
                 <span>{m.name}</span>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text" // FIXED: Shifted to local text input to support smooth user backspacing operations
                   value={percents[m.id] ?? ""}
-                  onChange={(e) =>
-                    setPercents((p) => ({ ...p, [m.id]: Number(e.target.value) }))
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPercents((p) => ({ ...p, [m.id]: val }));
+                  }}
+                  onBlur={() => {
+                    setPercents((p) => ({ ...p, [m.id]: Number(p[m.id]) || 0 }));
+                  }}
                 />
               </div>
             ))}

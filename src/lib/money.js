@@ -6,18 +6,30 @@ export function formatMoney(amount) {
 }
 
 export function splitEqual(amount, ids) {
-  const n = ids.length || 1;
-  const share = Number((amount / n).toFixed(2));
+  if (!ids.length) return {};
+  const n = ids.length;
+  
+  // Calculate the standard base share truncated down to two decimal places
+  const baseShare = Math.floor((amount / n) * 100) / 100;
+  
+  // Track remaining dust/pennies precisely
+  const totalAllocated = baseShare * n;
+  const remainder = Math.round((amount - totalAllocated) * 100) / 100;
+  
   const shares = {};
-  for (const id of ids) {
-    shares[id] = share;
-  }
+  ids.forEach((id, index) => {
+    // The very last participant absorbs any leftover rounding pennies to balance cleanly
+    shares[id] = index === n - 1 ? Math.round((baseShare + remainder) * 100) / 100 : baseShare;
+  });
+  
   return shares;
 }
 
 export function percentsSumTo100(percents) {
   const values = Object.values(percents).map(Number);
-  return values.reduce((a, b) => a + b, 0) === 100;
+  const sum = values.reduce((a, b) => a + b, 0);
+  // Replaced strict check with an epsilon tolerance threshold check
+  return Math.abs(sum - 100) < 0.01;
 }
 
 export function splitByPercent(amount, percents) {

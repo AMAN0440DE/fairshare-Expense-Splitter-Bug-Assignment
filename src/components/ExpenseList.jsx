@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatMoney } from "../lib/money.js";
 import { dateValue, formatDate } from "../lib/format.js";
 
@@ -13,7 +13,12 @@ function initials(name) {
 
 function ExpenseRow({ expense, memberMap, onDelete, onSaveAmount }) {
   const [draft, setDraft] = useState(String(expense.amount));
-  const payer = memberMap[expense.paidBy];
+  const payer = memberMap[Number(expense.paidBy)];
+
+  // Keep draft text value in sync if expense amount changes from outside
+  useEffect(() => {
+    setDraft(String(expense.amount));
+  }, [expense.amount]);
 
   return (
     <article className="expense">
@@ -58,8 +63,9 @@ export default function ExpenseList({
   onDeleteAt,
   onUpdateAt,
 }) {
-  const memberMap = Object.fromEntries(members.map((m) => [m.id, m]));
-  const sorted = [...expenses].sort((a, b) => dateValue(a.date) - dateValue(b.date));
+  const memberMap = Object.fromEntries(members.map((m) => [Number(m.id), m]));
+  // FIXED: Handles proper chronological sorting order
+  const sorted = [...expenses].sort((a, b) => dateValue(b.date) - dateValue(a.date));
 
   return (
     <section className="card">
@@ -68,13 +74,13 @@ export default function ExpenseList({
       {sorted.length === 0 ? (
         <p className="empty">No expenses match these filters.</p>
       ) : (
-        sorted.map((expense, index) => (
+        sorted.map((expense) => (
           <ExpenseRow
-            key={index}
+            key={expense.id} // FIXED: Replaced index with unique ID
             expense={expense}
             memberMap={memberMap}
-            onDelete={() => onDeleteAt(index)}
-            onSaveAmount={(amount) => onUpdateAt(index, { amount })}
+            onDelete={() => onDeleteAt(expense.id)}
+            onSaveAmount={(amount) => onUpdateAt(expense.id, { amount })}
           />
         ))
       )}

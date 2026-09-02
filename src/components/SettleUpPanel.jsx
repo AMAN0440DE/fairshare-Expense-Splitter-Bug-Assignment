@@ -14,9 +14,12 @@ export default function SettleUpPanel({ transfers }) {
           </div>
         ))
       )}
-      <p className="hint">
-        After these payments, every member's net should be $0.00.
-      </p>
+      {/* FIXED: Hides instructional details when the group pool is fully cleared */}
+      {transfers.length > 0 && (
+        <p className="hint">
+          After these payments, every member's net should be $0.00.
+        </p>
+      )}
     </section>
   );
 }
